@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-from PIL import Image
+import Image
 import os.path
 import time
 import torch
@@ -10,7 +10,7 @@ import torchvision.transforms as trn
 import torch.utils.data as data
 import numpy as np
 
-from PIL import Image
+#from PIL import Image
 
 # /////////////// Data Loader ///////////////
 
@@ -108,9 +108,11 @@ class DistortImageFolder(data.Dataset):
         if self.target_transform is not None:
             target = self.target_transform(target)
 
-        save_path = '/share/data/vision-greg/DistortedImageNet/JPEG/' + self.method.__name__ + \
+        #save_path = '/share/data/vision-greg/DistortedImageNet/JPEG/' + self.method.__name__ + \
+        #            '/' + str(self.severity) + '/' + self.idx_to_class[target]
+        save_path = '/Users/yifanli/Yale/2021FML/AdvRobustness/DistortedImageNet/JPEG/' + self.method.__name__ + \
                     '/' + str(self.severity) + '/' + self.idx_to_class[target]
-
+        #root="/share/data/vision-greg/ImageNet/clsloc/images/val",
         if not os.path.exists(save_path):
             os.makedirs(save_path)
 
@@ -162,7 +164,7 @@ def disk(radius, alias_blur=0.1, dtype=np.float32):
     aliased_disk /= np.sum(aliased_disk)
 
     # supersample disk to antialias
-    return cv2.GaussianBlur(aliased_disk, ksize=ksize, sigmaX=alias_blur)
+    return cv2.cv2.GaussianBlur(aliased_disk, ksize=ksize, sigmaX=alias_blur)
 
 
 # Tell Python about the C method
@@ -256,8 +258,8 @@ def motion_blur(x, severity=1):
 
     x.motion_blur(radius=c[0], sigma=c[1], angle=np.random.uniform(-45, 45))
 
-    x = cv2.imdecode(np.fromstring(x.make_blob(), np.uint8),
-                     cv2.IMREAD_UNCHANGED)
+    x = cv2.cv2.imdecode(np.fromstring(x.make_blob(), np.uint8),
+                     cv2.cv2.IMREAD_UNCHANGED)
 
     if x.shape != (224, 224):
         return np.clip(x[..., [2, 1, 0]], 0, 255)  # BGR to RGB
@@ -283,7 +285,7 @@ def frost(x, severity=1):
          (0.6, 0.75)][severity - 1]
     idx = np.random.randint(5)
     filename = ['./frost1.png', './frost2.png', './frost3.png', './frost4.jpg', './frost5.jpg', './frost6.jpg'][idx]
-    frost = cv2.imread(filename)
+    frost = cv2.cv2.imread(filename)
     # randomly crop and convert to rgb
     x_start, y_start = np.random.randint(0, frost.shape[0] - 224), np.random.randint(0, frost.shape[1] - 224)
     frost = frost[x_start:x_start + 224, y_start:y_start + 224][..., [2, 1, 0]]
@@ -311,11 +313,11 @@ def snow(x, severity=1):
 
     snow_layer.motion_blur(radius=c[4], sigma=c[5], angle=np.random.uniform(-135, -45))
 
-    snow_layer = cv2.imdecode(np.fromstring(snow_layer.make_blob(), np.uint8),
-                              cv2.IMREAD_UNCHANGED) / 255.
+    snow_layer = cv2.cv2.imdecode(np.fromstring(snow_layer.make_blob(), np.uint8),
+                              cv2.cv2.IMREAD_UNCHANGED) / 255.
     snow_layer = snow_layer[..., np.newaxis]
 
-    x = c[6] * x + (1 - c[6]) * np.maximum(x, cv2.cvtColor(x, cv2.COLOR_RGB2GRAY).reshape(224, 224, 1) * 1.5 + 0.5)
+    x = c[6] * x + (1 - c[6]) * np.maximum(x, cv2.cv2.cvtColor(x, cv2.cv2.COLOR_RGB2GRAY).reshape(224, 224, 1) * 1.5 + 0.5)
     return np.clip(x + snow_layer + np.rot90(snow_layer, k=2), 0, 1) * 255
 
 
@@ -376,12 +378,12 @@ def pixelate(x, severity=1):
 
 # /////////////// Further Setup ///////////////
 
-
+# root="/share/data/vision-greg/ImageNet/clsloc/images/val",
 def save_distorted(method=gaussian_noise):
     for severity in range(1, 6):
         print(method.__name__, severity)
         distorted_dataset = DistortImageFolder(
-            root="/share/data/vision-greg/ImageNet/clsloc/images/val",
+            root = "/Users/yifanli/Yale/2021FML/AdvRobustness/val",
             method=method, severity=severity,
             transform=trn.Compose([trn.Resize(256), trn.CenterCrop(224)]))
         distorted_dataset_loader = torch.utils.data.DataLoader(
@@ -425,5 +427,4 @@ d['JPEG'] = jpeg_compression
 # d['Spatter'] = spatter
 
 
-for method_name in d.keys():
-    save_distorted(d[method_name])
+save_distorted(d['Motion Blur'])
